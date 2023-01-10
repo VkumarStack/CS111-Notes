@@ -1,0 +1,48 @@
+# Introduction
+- At the bare minimum, a computer consists of memory (RAM), a processor (CPU), and a bus connecting to various I/O devices (disk, mouse, monitor, etc.)
+    - The memory can read or write some binary words
+    - The processor can perform various instructions, such as add numbers, move a value to memory, etc.
+    - The bus can read input and request input
+    - The disk can read or write a block of data
+    - The mouse can report X and Y axis movements
+    - The monitor can write to groups of pixels
+- Higher level programs make use of all the aforementioned hardware aspects of the computer, but they are assisted via the *operating system*
+    - Operating systems help perform complex operations that *interact* - with the hardware, with various bits of software, etc.
+    - Operating systems hide *complexity*, acting as an abstraction that makes sure nothing gets in the way of anything else in the background
+        - Most modern devices can many, many processes running at the same time to get everything properly functioning, and the operating system ensures that such processes do not get in the way of each other
+- An operating system is a system software intended to provide support for higher level applications; they build up from the basic, lower level operations with hardware (i.e. assembly) and provide a higher-level interface for user processes and software applications
+    - Operating systems sit between the hardware and everything else - thus, it ensures that the hardware works for all softwares while hiding the nasty details from higher-level users and software
+- Virtually every device uses an operating system of some sort, and users use their features whenever they interact with the device
+    - Since you rely on the services that they offer (memory management, storage, scheduling, security, etc.), it is important to understand how they work
+- Common problems in operating systems can be applicable to other fields of programming:
+    - Coordinating separate computations
+    - Managing shared resources
+    - Virtualizing hardware and software
+    - Organizing communications
+    - Protecting computing resources
+- Operating System Wisdom:
+    - View services provided by the operating system as objects and operations 
+        - Each object is represented by a data structure(s)
+    - There is an important difference between an interface and implementation
+        - Implementation is not a specification - the interface is a specification
+            - The interface is a contract, specifying the responsibilities of both the users of the interface (what to do to use it) as well as the creator of the interface (guarantee that it works in a certain way)
+        - If the implementation is changed, the interface should still be able to work seamlessly 
+        - Avoid inappropriate dependencies within your implementation
+    - Build complex features in modules (individual, self-contained pieces of code with interfaces for other modules) and make use of functional encapsulation (everything related to a certain feature/function should be self-contained in a single module - i.e. module dealing with memory management)
+        - Doing so allows for complexity to be hidden and for an appropriate level of abstraction
+    - Separate policies and mechanisms
+        - Policies determine what can/should be done
+        - Mechanisms implement the basic operations to do such policies
+        - Mechanisms shouldn't limit policies and policies should be changeable without changing the mechanisms
+        - Systems should be built in a way where it is easy to switch from one policy to another - though this requires the underlying mechanism for the new policy to exist
+    - Parallelism and asynchrony are powerful and vital but can be dangerous when used carelessly
+    - Performance and correctness are often at odds - in this case, you need to choose whichever is more important for the issue at hand
+- One definition of an operating system is a low level software that provides a better, more usable abstraction of the hardware below it as well as easy, safe, fair use and sharing of hardware resources
+    - The operating system manages the hardware for programs - allocating it and managing its use, enforces controlled sharing (privacy), and overseeing execution and handling problems
+    - The operating system abstracts the hardware, making it easier/faster to use and allowing for software to be more portable
+        - The operating system is responsible for ensuring that different devices (CPUs, etc.) work without the user worrying
+    - The operating system provides new abstractions for applications, thus allowing for new, powerful features beyond just the hardware
+- An operating system is effectively a set of management and abstraction services that occur behind the scenes
+    - Applications see the objects and their services - files, processes, threads, devices, ports, etc. and creating, destroying, reading, writing, and signalling such objects
+    - An operating system therefore extends a computer beyond just the bare minimum of the hardware, creating a more richer, virtual computing platform 
+        - The hardware at its basic can just do addition, memory writing/reading, etc., but it is the operating system that extends the hardware to be able to do more advanced tasks
