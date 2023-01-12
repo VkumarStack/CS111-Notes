@@ -1,0 +1,23 @@
+# Software Interfaces
+- Modularity in software development allows for the creation of complex projects via various independent, interoperable components - developers do not need to reinvent the wheel every time and can instead focus on problems that are not already tackled by packages
+- **Interfaces** serve as a contract ensuring that these application modules actually work - on other platforms as well as in the case when they are updated
+    - Very widely used applications are often subject to standardization, which can be considered a good thing because they encourage clear specifications and ease for compatibility, at the cost of possible limiting implementations
+        - The POSIX standard for operating systems is one example
+- It is a bad idea to base an interface off of an implementation - this results in cruddy interfaces; it is better to do the reverse and start with an interface that can be followed up with an implementation(s)
+- It is also a bad idea to use an application based on its implementation rather than its intended interface - the implementation may readily change but the interface is meant to stay the same, so exploiting a "feature" in the implementation in your application may result in failure if that "feature" is removed in a future implementation
+- As technology changes, though, maintaining a stable interface for applications can be an issue, as one must choose to appease old users at the cost of fading onto obsolescence, evolve one's interface with technology at the cost of abandoning old users, or a mixture of the two
+- An **application programming interface (API)** is an interface that describes included methods (functions) and their signatures (parameters, return types), a list of associated macros, data types, and data structures, as well as a discussion of usages
+    - These APIs are written with the intention of being implemented through some sort of programming langauge - though these applications must be recompiled for different platforms
+- To address the issue of APIs needing to work for different platforms, **application binary interfaces (ABI)** deal with platform specific features - they bind an application programming interface to a specific instruction set architecture
+    - When you download software, you are often downloading the *binary* installer for your platform (i.e. Windows 64-bit) that defines the machine language instructions and conventions to call routines used by the API
+    - This allows for better portability - creating an application written to a supported API and compiled/linked by ABI-compliant tools allows for such a program to be able to run on any platform supporting that ABI
+    - Most programmers never directly deal with an ABI but instead indirectly use them via compilers, linkage editors, program loaders, or the operating system
+- Interfaces should be stable, especially in a complex application where components depend on the interfaces of other components. If one interface is poor, then other components may break resulting in the entire system going down
+- Application programming interfaces are not necessarily the same as user interfaces, which consist of text boxes, menus, and so forth
+    - User interfaces can readily be changed without breaking the program (moving a text box or adding more menus) whereas an API is subject to more difficulties (i.e. changing the order of parameters in a method ruins everything using that method)
+- Interfaces are not set in stone
+    - You can add upwards compatible extensions without breaking any previous versions (new methods that can be used)
+    - If an incompatible change must be added, it can be done either via interface polymorphism or versioned interfaces
+- When creating new interfaces, try to keep an open mind about future extensions or even problems
+    - Design features that may not be implemented, just in case they might be needed in the future
+    - Create simpler interfaces
