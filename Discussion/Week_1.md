@@ -1,0 +1,22 @@
+# Lab 0 Starter
+- The **kernel** is the lowest level of the operating system - it is the computer program at the core of the operating system and has complete control over the system
+    - **Kernel modules** are pieces of code that are loaded and unloaded into the kernel on demand, extending the functionality of the kernel without needing to reboot the system.
+- To see the kernel modules currently loaded, use `lsmod` and to see information about a particular module, use `modinfo <module_name>`
+- To load a module, use `sudo insmod <module_name> [args]`
+    - Kernel modules have a "start" initialization function called `init_module()`, which is called when the above command is used
+- To unload a module, use `sudo rmod <module_name>`
+    - Kernel modules have a "cleanup" function called `cleanup_module()`, which is called when the above command is used
+- To print things out, use `printk()` - this is not meant to communicate to the easier but rather to log
+    - To actually view printed messages, use `dmesg`
+    - `printk` takes two arguments, the first being the print condition and the second being the actual message
+        - Print conditions include KERN_EMERG (emergency), KERN_ALERT (immediate attention), KERN_CRIT (critical), KERN_ERR (error), KERN_WARNING (warning), KERN_NOTICE, KERN_INFO, and KERN_DEBUG
+        - Make sure to include `<linux/kernel.h>` to use the function
+- Modules loaded into the kernel are listed in `/proc/modules` file, and this file can be inspected to see if the module is loaded or not
+- The `/proc` directory is the control and information center for the kernel; it is a virtual file system that doesn't contain *real* files on the disk but rather contains runtime information located in memory
+    - Details about all running processes can be found in `/proc` - effectively an accessable process table
+        - i.e. `cat /proc/meminfo` provides information about the system's memory (i.e. free memory)
+    - Many system call utilities calls to files in `/proc`
+        - When you perform `cat` on a module (i.e. `cat /proc/modules`), you are in a sense performing a system call
+- Writing to a proc file involves making use of the `seq_file` API, where each sequence is composed of four functions - `start()`, `next()`, `stop()`, and `show()`
+    - The API starts a sequence when the user reads the `/proc` file
+    - `seq_printf()` allows you to write to the virtual proc file
