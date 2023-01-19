@@ -18,3 +18,72 @@
 ## Abstractions
 - Many operating system handles are complex - life can be made easier for application programmers if they work with simple abstractions, which are created, managed, and exported by the operating system
     - While hardware is indeed fast, using it directly involves a lot of complexity - encapsulating this complexity with abstractions allows for better error handling and performance handling while eliminating irrelevant behavior to the user
+## Memory Abstractions
+- Many resources used by programs relate to data storage - variables, allocated memory, files, database records, etc.
+    - All such resources are similar in that they can be read from and written to, but there is one notable differences:
+        - One should consider memory that is *persistent* vs memory that is *volatile*
+        - One should consider the size of memory, not only relative to the amount of memory that the user needs, but also the size of memory actually available
+        - One should consider coherence and atomicity when working with storage, as well as latency
+    - The aforementioned considerations ultimately result from the fact that the operating system has *particular* physical devices that it must be able to somehow abstract with desirable properties (even if such properties do not necessarily exist within the physical device)
+        - i.e. A file is something that be read or written abritary amounts of data from or to
+            - We expect *coherence* in that the changes from a given write should be reflected upon the next read of the file while also expecting the entire read or write to occur *atomically*
+            - Files are implemented with flash drives, which often have odd characteristics that get in the way of meaningful abstractions
+                - Rewriting on a flash drive results in an entire block being erased
+                - Atomicity of writing is typically only at the word level (and a user may write something much larger than a single word)
+                - Blocks can be erased only so many times
+            - The operating system smooths out these oddities:
+                - There are different structures for the file system, so the issue of rewriting existing data does not occur so frequently
+                - There is garbage collection to deal with blocks largely filled with inactive data
+                - There is a pool of empty blocks maintained to be used whenever a new file wants to be created 
+                - There is wear-leveling in use of blocks (so the same area is not erased frequently, but rather erasure is spread throughout the blocks of the drive)
+                - Built-in functionality to provide desired atomicity of multi-word writes
+## Interpreter Abstractions
+- An interpreter perform instructions - at the hardware level, the CPU is one example of an interpreter
+- However, the CPU is not easy to use in regards to its instructions, so the operating system provides its own, higher level interpreter abstractions
+- Basic Interpreter Components:
+    - Instruction reference - tells the interpreter which instruction to do next; analog to instruction pointer
+    - Repertoire - set of things the interpreter can do (operations); analog to machine code instructions (add, sub, etc.)
+    - Environment reference - describes the current state on which the next instruction should be performed; analog to registers
+    - Interrupts - situation in which the instruction reference pointer is overriden 
+- i.e. A process is a higher level interpreter
+    - The operating system maintains a program counter for the process
+    - The source code of the process specifies its repertoire
+    - The pointers to the stack, heap, and register content of the process are maintained by the operating system
+    - The operating system can perform an interrupt on the process when necessary
+    - No other interpreters should be able to mess up the process's resources
+- The process abstraction must be implemented to account for there being multiple processes, there being limited physical memory, there being only set of registers (or one per core), and there being a limited amount of cores
+    - Schedulers share the CPU among various processes
+    - There is memory management hardware and software that multiplexes memory use among the processes while giving the illusion of full use of memory (virtual memory)
+    - There is also access control mechanisms for other memory abstractions (a process can't mess with the files of another process)
+## Abstractions of Communications
+- A communication link allows one interpreter to talk to another (whether it be on the same machine or on a different machine)
+- At the physical level, this is represented by memory (same machine) and cables (different machines)
+    - These physical levels are abstracted by interprocess communication mechanisms and networks
+- Although communication abstractions are similar to memory abstractions, there is difference in that:
+    - There is highly variable performance (long time for server response)
+    - It is often asynchronous (do not *block* the CPU while waiting since there is no indication of how long the communication will take)
+    - The receiver may only perform the appropriate operation once it knows the send occurred
+- Implemented Communication and Link Abstractions:
+    - If the two communicating processes are on the same machine, use memory transfer (copy message from sender's memory to receiver's memory - typically requiring the operating system to perform the sharing of memory)
+    - If the two communicating processes are remote, the process is much more complicated, as now network protocols are necessary
+    - Regardless of whether the processes are on the same machine or remote, implementing a communication abstraction requires that:
+        - The costs of copying is optimized
+        - Memory is managed (i.e. if process A is transferring information to process B and no longer needs it, then instead of copying, the memory can now just belong to B instead of A)
+        - Complex network protocols are included in the operating system itself (or even in the hardware)
+        - Message loss and the potential of retransmission must be considered
+        - Security concerns be addressed
+## Generalizing Abstractions
+- In most cases of abstractions, there is the issue of dealing with many varied resources while still making them appear the same
+    - This typically involves some common model (i.e. PDF for printed output) known as a *federation framework* that the lower level hardware or even software should follow
+        - Federation frameworks allow many similar, but somewhat different things to be treated uniformly by creating one interface that all must meet and then plugging in the actual implementations for those interfaces 
+            - Federation frameworks are not necessarily limited since models can include optional features which can later be accounted for by the software
+            - i.e. Hard disk drives must accept the same commands
+## Abstractions and Layering
+- Its common to create increasingly complex services by layering abstractions
+    - i.e. A generic file system layers on a particular file system, which layers on an abstract disk, which layers on a real disk
+- Layering allows for modularity 
+    - It is easy to build multiple services on a lower layer, which can then be used by higher layers (or use only services which are necessary)
+        - i.e. A file system can either have a single disk or a RAID below it
+- However, layers tend to add performance penalties, as it is expensive to go from one layer to the next since it  frequently involves changing data structures/representations and extra instructions
+    - A lower layer may also limit what an upper layer can do (i.e. an abstract network link may hide the causes of packet losses)
+        - Skipping layers may allow for better performance, but at the cost of more complexity with working with lower layers

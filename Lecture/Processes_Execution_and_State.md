@@ -1,0 +1,44 @@
+# Processes, Execution, and State
+## Processes
+- Processes are an executing instance of a program, thought of as a virtual private computer for running one piece of code
+    - Processes can also be thought of as objects, characterized by its properties (state) and its operations
+- The **state** of a process can vary as it continues to execute
+    - The state a process in a computer is representable as a set of bits, which can be saved and restored when necessary by the operating system
+    - The state of operating system objects are managed by the operating system itself - users cannot directly access or change the state of the operating system but must rather ask the operating system to access or change such state
+        - Scheduling priority of a process (what processes are next to run)
+        - Current pointer into a file
+        - Completion condition of an I/O operation
+        - List of memory pages allocated to a process
+- Each process has some memory addresses reserved for its private use, known as its address space, which is kept by the operating system
+    - A process' address space is made up of all memory locations that the process can address (it cannot access an address outside of the address space - if it were to do so, an execption would occur)
+    - Address spaces are virtual - operating systems "pretend" that every process can include all of the memory available, though this is not true under the cover  
+        - This virtualization allows for simplicity since programs do not need to worry about which memory addresses they are allowed to access - they can just assume any address works (when in reality their virtual memory is mapped to physical memory)
+- A program is a specification of a process, but they are not actually running - only processes are running 
+    - Programs sit on disk, ready to be loaded into a running process
+        - The ELF header on a program indicates the target ISA and locations of the load and info sections 
+            - These sections typically contain the code, data values, and symbol tables (not necessarily, but useful for debugging)
+    - Processes sit in memory (address space) containing shared code, private data, shared libraries, and a private stack
+        - These different types of memory elements have different requirements - i.e. the code is not writable but must be executable and stacks are readable and writable but not executable
+        - Where to place different memory components is up to the operating system (i.e. the code and data towards the beginning of the address space and the stack towards the very end, allowing for it to grow downwards without collision)
+- Code Segments:
+    - Start with a load module, containing the output of the linkage editor
+        - Since linkage has already occurred, all external references have been resolved (function names, symbols, etc.) except for possibly DLLs
+    - The code is then loaded into memory since instructions can only be run from RAM - a code segment is created from the load module
+        - This requires mapping the code segment into the process's address space
+    - Code segments are read/execute only and sharable (if there are multiple instances of the *same* program running, this allows for optimization while still being safe since there is no possibility of writing over the segment)
+- Data Segments:
+    - Data must be initialized in the address space - created and mapped into the process's address space
+    - Data segments are readable and writable and are private only to the process - it can be grown or shrinked (using `sbrk` system call)
+- Processes and Stack Frames:
+    - Each procedure call allocates a new stack frame, containing local variables for the procedure, storage for invocation parameters, registers (to restore them later)
+    - Stack frames are preserved as part of a process state - most modern CPUs have stack support 
+- Stack Segment:
+    - The size of the stack depends on program activities (grows larger as calls nest more deeply, and shrinks after calls return)
+    - The operating system manages each process' stack segment, created at the same time as the data segment
+        - Some operating systems allocate a fixed stack size at load time while others dynamically extend the stack as the program needs it
+- Libraries:
+    - Static libraries are added to the load module
+    - Shared libraries use less space, with only one in-memory copy being shared by all processes (faster program loads)
+- Other Process State (not in address space):
+    - Registers (general registers, program counter, processor status, stack pointer, frame pointer)
+    - Process' own operating system resources (open files, current working directory, locks)
