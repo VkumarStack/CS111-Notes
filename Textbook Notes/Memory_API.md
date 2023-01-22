@@ -1,0 +1,22 @@
+# Memory API
+## Types of Memory
+- **Stack** memory is used for scoped allocations, and is implicitly managed by the compiler
+    - When the code exits a code block or function (out of scope), stack memory is automatically freed
+- **Heap** memory is explicitly allocated and deallocated by the programmer
+    - `void *malloc(size_t size)` returns a pointer to a newly allocated block of memory on the heap of size `size`
+        - It is common to use `sizeof(TYPE)` as the size when calling `malloc()`, as `sizeof` is a compile-time operator that is able to correctly get the size of certain types (like doubles, which may vary depending on the system architecture)
+            - i.e. `int *x = malloc(10 * sizeof(int));`
+        - When dealing with strings, make sure to account for the 1-byte null character at the end of the string when calling `malloc`
+            - i.e. `malloc(strlen(s) + 1)`
+        - `malloc` returns a void pointer, which can then be typecasted into any other type
+    - `free(POINTER)` frees heap memory
+    - `void *calloc(size_t num, size_t size)` allocates an array of `num` objects of size `size` and zeroes out all bytes initially
+    - `void *realloc(void *ptr, size_t size)` resizes the memory block pointed to by `ptr` to size `size`
+- Common Errors:
+    - Forgetting to allocate memory - often leads to a segmentation fault
+    - Not allocating enough memory - may result in buffer overflows where nearby addresses are overriden 
+    - Forgetting to initialize allocated memory - results in uninitialized reads, where the heap data of some unknown, previous value is instead read
+    - Forgetting to free memory - results in memory leaks
+        - When a program ends, it doesn't matter if memory leaked or not since the operating system cleans up its address space anyways - it is still good practice to always free memory (especially for longer running programs which could eventually run out of available memory due to memory leaks)
+    - Accessing already freed memory - dangling pointer
+    - Freeing memory repeatedly - double free
