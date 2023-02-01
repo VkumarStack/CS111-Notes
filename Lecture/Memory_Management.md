@@ -1,0 +1,71 @@
+# Memory Management
+- Goals:
+    - Transparency - Each process should only see its own address space and should be unaware that memory is being shared
+    - Efficiency - Memory should be effectively utilized and there should be a low run-time cost for the allocation or relocation of memory
+    - Protection and Isolation - Private data should not be corrupted and should not be able to be seen by other processes
+- Physical Memory Allocation:
+    - Physical memory is divided between the operating system kernel, process private data, and shared code segments
+## Physical and Virtual Addresses
+- A RAM cell has a particular *physical address* - a location on a memory chip capable of storing data
+- Processes on modern computers, though, use *virtual addresses* which are *not* physical addresses - translation is required from virtual addresses to physical addresses
+    - Virtual addressing allows for more flexibility in memory management
+## Memory Management Problems
+- Most processes cannot perfectly predict how much memory they will use
+    - The operating system should not allocate *too much* memory for a process, as a result, but *still enough*
+- Processes should expect to find their existing data when they need it where they left it 
+    - The process should be able to access its memory regardless of interrupts (scheduling)
+- The entire amount of data required by all processes may exceed the amount of available physical memory 
+- Switching between processes must be fast
+    - Copying data should be limited as much as possible
+- The cost of memory management itself must not be too high
+## Fixed Partition Allocations
+- This strategy involves pre-allocating partitions of RAM for n processes - each process has at least one partition (but may have more)
+- This approach is very easy to implement, as allocation and deallocation is very cheap and easy
+- Fixed partition allocation is well suited to a known job mix (that is, you know how much memory each job will require)
+- With this, though, it is important to enforce *partition boundaries* to prevent one process from accessing another's memory
+    - To deal with this, hardware support is necessary - there are special registers that contain the partition boundaries, and addresses with these boundaries are accepted
+        - Partition registers point to the beginning and the end of each partition, acting as the bounds to check for a valid address
+- In addition to needing to know how much memory is used ahead of time, partition allocation limits the number of processes supported based on the total amount of partitioned memory 
+    - Fixed partition allocation is also not a great mechanism for memory sharing
+- Fixed partition allocation also often results in *internal fragmentation*, where there is wasted space *inside* fixed sized blocks
+    - Due to allocation being forced in *fixed-sized* chunks, it is often the case where the requestor is given more than needed, resulting in the unused part being wasted since it cannot be used for others
+- For the drawbacks mentioned, fixed partition allocation is not typically used on modern systems, but it may be useful for special purpose (embedded) systems where memory needs are exactly known
+## Dynamic Partitions
+- Dynamic partition allocation is similar to fixed partition allocation except that the partitions can be variable-sized, typically at the amount requested
+    - These partitions are still contiguous in memory and have appropriate access permissions for processes  
+    - Processes could have multiple partitions, each with different sizes
+    - At its basis, this is still directly using physical addresses (no virtualization)
+- There are still issues with dynamic partitions as partitions are not relocatable, are not expandable, cannot support applications with address spaces larger than physical memory, and are subject to external fragmentation
+    - Partitions are not relocatable since they are tied to particular address ranges - attempting to move the partition would invalidate all pointers to its contents
+    - Partitions are not expandable since other processes may be using the memory *after* a given partition, so attempting to expand the partition would enroach on the other processes' memory
+- Variable sized partitions are kept track of using a *free list*, which is a data structure used to keep track of pieces of *unallocated* memory
+    - When a process requests memory, a large enough chunk of memory is found by searching through the free list and returning a piece of memory of the requested size - the remainder of memory is put back on the free list
+    - When a process frees memory, the freed memory is placed back on the free list
+- A free list with fixed size blocks is easy to track since an array indicating which blocks are free can be used
+- A free list with variable-sized chunks typically involves linked list of descriptors representing a chunk of memory 
+    - Each descriptor lists the size of the chunk and a pointer to the next chunk on the list
+        - The list itself may contain all memory fragments (free and allocated) or just those that are free - in the former case, each descriptor would also need a bit to indicate whether the chunk is free
+    - These descriptors are typically kept before each chunk that they describe (they are embedded in memory and the operating system keeps a head pointer)
+    - When memory is requested, a large enough free chunk is found (by searching through the free list) and is reduced to its requested size (this allocated chunk is either marked as allocated in the list or removed from the list) - a new header is set up for the residual chunk and is properly inserted into the list
+- Variable partitions are not subject to internal fragmentation but are instead subject to external fragmentation, which results in small, left-over chunks of memory which are too small to satisfy further memory requests
+    - These chunks may be "in between" allocated memory chunks
+    - One way to mitigate external fragmentation is to avoid creating small fragments, which can be done via proper allocation policies
+        - Best Fit: Search for the smallest chunk greater than or equal to the requested size
+            - This finds a perfect fit, but requires having to search the entire list every time and often creates very small fragments
+        - Worst Fit: Search for the largest chunk greater than or equal to the requested size
+            - This tends to create very large fragments (which is good) for a while, but still requires searching through the entire list every time
+        - First Fit: Use the first chunk found that is big enough to allocate with
+            - This allows for short searches and more random-sized fragments, but results in the first chunks quickly fragmenting, resulting in longer searches later - this tends to fragment as badly as best fit
+        - Next Fit: Use first fit, but keep another pointer to start searching from; when a chunk is found, set this other pointer to that chunk so subsequent searches can start from there
+            - This allows for short searches and spreads out fragmentation
+            - Using the technique of a *guess pointer* is a great general approach to a wide range of problems (starting a search from a different place every time) 
+    - Another approach to mitigate external fragmentation is to coalesce partitions when there are contiguous *free chunks* - if there are, then recombine them on the free list to create a bigger free chunk
+## Buffer Pools
+- In many real systems, there are some memory sizes that are requested more often than others (usually for fixed-size buffers used by key services)
+    - The operating system may want to handle these types of requests specially by providing **buffer pools**, which are memory pools for popular, fixed sizes
+    - This improves efficiency for these *perfectly matching requests* since the allocation (just an array of available slots) is easier and fragmentation is reduced 
+    - This requires knowing how much to reserve, as too little will result in the buffer pool being a bottleneck and too much will result in wasted space
+        - The buffer pool can possible be resized dynamically by the operating system - if there is not enough size, then more size can be requested, and if there is too much size, then some buffers can be returned to the free list
+            - If memory in the free list is dangerously low, then each buffer pool service can be requested to return space 
+            - All of this can be tuned to be adaptive to changing loads
+## Relocation

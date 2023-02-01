@@ -130,3 +130,13 @@
         - Linux uses a soft priority system, with each process having a `nice` value
 - Windows uses 32 different priority levels, with half for regular tasks and half for soft real time
     - Users can choose from 5 of these priority levels, and the kernel adjusts priorities based on process behavior with the goal of improving responsiveness
+## Multi-Level Feedback Queue Scheduling
+- This involves creating multiple ready queues for different types of task behavior
+    - Short tasks (that finish quickly) are placed in a high priority queue with short time slices
+        - This is useful when needing to optimize response time (i.e. interactive tasks)
+    - Long tasks (background) are placed in a lower priority queue with long time slices
+        - This minimizes overhead
+    - Round robin is performed within each queue
+- A new process is initially placed in the high priority queue with a given amount of CPU time allocation
+    - Each time it runs, its allocation reduces and, if this allocation runs out, it is moved to a lower priority queue
+- All processes are periodically moved to a higher priority queue to avoid starvation
