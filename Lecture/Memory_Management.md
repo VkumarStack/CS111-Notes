@@ -63,9 +63,31 @@
 ## Buffer Pools
 - In many real systems, there are some memory sizes that are requested more often than others (usually for fixed-size buffers used by key services)
     - The operating system may want to handle these types of requests specially by providing **buffer pools**, which are memory pools for popular, fixed sizes
-    - This improves efficiency for these *perfectly matching requests* since the allocation (just an array of available slots) is easier and fragmentation is reduced 
+    - This improves efficiency for these *perfectly matching requests* since the allocation (just an array of available slots) is easier, quicker, and fragmentation is reduced 
     - This requires knowing how much to reserve, as too little will result in the buffer pool being a bottleneck and too much will result in wasted space
         - The buffer pool can possible be resized dynamically by the operating system - if there is not enough size, then more size can be requested, and if there is too much size, then some buffers can be returned to the free list
             - If memory in the free list is dangerously low, then each buffer pool service can be requested to return space 
             - All of this can be tuned to be adaptive to changing loads
+                - This can involve parameters, such as a low space threshold (need more), high space threshold (have too much), etc.
+## Memory Leaks
+- When processes finish using allocated memory (whether it be in buffer pools or within its own address space) but do not deallocate, **memory leaks** occur
+- One solution to memory leaks is using a **garbage collector**, which monitors how much free memory is available and, if it is low, starts a garbage collection which searches for every object pointer, noting which addresses are accessible (and taking the complement to find addresses that are inaccessible), and then adding all inaccessible memory back to the free list
+    - Object oriented languages often utilize garbage collectors since all object references are tagged and are of a known size
+    - For general languages (that may not be object oriented), a garbage collector must find all pointers in allocated memory, determine how much memory each pointer points to, determine what it is and isn't pointed to, and finally free what isn't pointed to
+        - These pointers could be on the stack, heap, global memory portion, etc.
+    - Garbage collection is generally difficult because it is difficult to determine if a data or stack segment *actually* contains a pointer or just a value that appears to be like a pointer (i.e. a really large integer resembles a pointer)
+        - Moreso, if the value is a pointer, it must be determined if that pointer itself is actually accessible 
+        - This becomes even more complicated when the pointers are in different data segments (i.e. the heap) 
 ## Relocation
+- Garbage collection is just another way to free memory, but it doesn't greatly help or hurt fragmentation
+- One way to deal with fragmentation is to *rearrange* active memory by **compacting** them at one end of the memory, allowing for a large chunk of free space to be cleared out at the other end
+    - Compaction involves copying the memory segments being rearranged onto a separate device (swap device) before they are reordered in memory
+- Relocation is difficult, however, in that doing so naively will result in the *addresses* in a program being wrong as a result of the memory movement 
+- The way to feasibly implement relocation is to make processes *location independent*, which can be done through *virtual addressing*
+    - If processes reference virtual addresses which are translated into physical addresses, then their physical addresses can be moved without altering how exactly they access their virtual addresses (so long as the mechanism to translate from virtual to physical is updated during the relocation)
+- One model for doing so is to split a process's address space into multiple segments (stack, heap, global, etc.), and use these segments as a unit of relocation
+    - The hardware will have special relocation registers, known as **segment base registers** that point to the start in *physical memory* for each segment, which the CPU adds to every virtual address when translating
+        - In addition to a base register, there is also a **limit register** that specifies the maximum legal offset (from the start of the segment), which can then be checked during address translation - if there is an illegal address, then the CPU can report it being a segmentation exception (trap)
+    - When a segment is moved, the base register just needs to be adjusted to match the new starting location in memory
+- Relocation allows for variable-sized partitions to be used and for partitions to be moved around
+    - However, these partitions must be *contiguous* themselves, which can still result in external fragmentation
