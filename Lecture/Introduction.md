@@ -46,7 +46,7 @@
     - Applications see the objects and their services - files, processes, threads, devices, ports, etc. and creating, destroying, reading, writing, and signalling such objects
     - An operating system therefore extends a computer beyond just the bare minimum of the hardware, creating a more richer, virtual computing platform 
         - The hardware at its basic can just do addition, memory writing/reading, etc., but it is the operating system that extends the hardware to be able to do more advanced tasks
-- ![Where Does the OS Fit In?](./Images/OS_Fit_In.png)
+- ![Where Does the OS Fit In?](../Images/OS_Fit_In.png)
     - The hardware has a *privileged instruction set* separate from its standard instruction set, and it is this privileged instruction set that the operating system has access to
     - System services or *libraries* convert function calls into actual binary system calls 
     - Application programs use the application binary interface to easily make system calls (as otherwise you would need to write assembly to directly call them)

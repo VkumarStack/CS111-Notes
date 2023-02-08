@@ -63,3 +63,56 @@
         - Once the I/O is complete, the page table is updated to point to the newly read-in page and the initial instruction is retried (back up the program counter to retry)
 - Page faults do not affect a program's correctness - only its performance since processes are blocked
     - Page faults can be reduced by having enough of the requested pages in memory, which is in turn a result of the page eviction policy chosen
+## Virtual Memory
+- Virtual memory is a generalization of what demand paging allows - it is an abstraction for a very large quantity of memory for each process that is *still directly accessible via normal addressing*
+    - The speed of virtual memory access approaches that of actual RAM
+- Each process is given an address space of immense size, typically as large as the hardware's word size allows (i.e. 2<sup>64</sup>)
+- Upon startup, processes are given a certain amount of memory (much smaller than their total address space), and they can request more memory as they run
+- Dynamic paging (moving out a page) and swapping (moving out a whole segment) is used to support the abstraction that each process has a very large address space
+## Page Replacement
+- The goal with page replacement algorithms is to have each page already in memory when a process accesses it, though this is difficult because it cannot be known *ahead of time* which pages will be accessed
+    - Instead, *locality of access* is relied upon to determine which pages to move out of memory and onto disk
+- The optimal page replacement algorithm will replace the page that will be next referenced furthest in the future, delaying the next page fault as long as possible - of course this cannot be implemented because the future cannot be perfectly predicted by a program (**oracle**)
+    - Typically, this optimal page replacement algorithm is used as a benchmark for comparison with implementable page replacement algorithms
+- The optimal page replacement algorithm can be approximated using *locality of reference*
+    - Pages which have been recently used should be noted (perhaps with extra bits in the page tables)
+    - This data can be used to approximate future behavior, as pages accessed recently are *likely* to be accessed again soon
+- The **least recently used (LRU)** algorithm will replace the page that has least recently been used
+- A naive implementation of LRU will have record the time each page is accessed, and when a page needs to be ejected all of the timestamps can be searched to find the oldest one
+    - This requires not only storing all of the timestamps somewhere, but also searching all timestamps every time an ejection is necessary
+    - With 64 gigabytes of RAM and 4 kilobyte sized pages, 16 megabytes of timestamps (one for each page) is very expensive
+- The timestamp information needed for LRU would be difficult to store in the MMU because it would cause overhead in getting and storing the time on every fetch
+    - At best, the MMU will maintain a *read* and *written* bit per page
+- Timestamp information cannot be maintained in software either because there would be overhead for *every single memory reference* in order to update the timestamp 
+- An ideal implementation modeling LRU should not need extra instructions per memory reference and should not need to scan through an entire timestamp list on replacement (since this list would be very large)
+- **Clock algorithms** approximate LRU by organizing all pages in a circular list and when a page is accessed, the MMU sets a reference bit for that page
+    - Whenever a replacement is necessary, the MMU scans each page and checks if its reference bit is set
+        - If this bit is set, it is cleared and the next page is scanned
+        - If this bit is not set, the MMU considers that page to be the least recently used, replaces it, and sets the next position to be start of the next scan (like a clock hand)
+    - This algorithm only requires a single "clock" position pointer and a access bit for each entry in the MMU
+        - The "clock" pointer is only updated on page loads or replacements
+- On a context switch, all page frames should not be cleared out, as this would otherwise incur many page faults when the switched-out-process runs again
+    - With a *single global page frame pool* approach, the entire set of page frames is treated as a shared resource and LRU is approximated for the entire set
+        - This does not fare well with round-robin scheduling since the process last in the scheduling queue will find all of their processes swapped out since it was not running - this will incur many page faults 
+    - With a *per-process page frame pools* approach, a number of page frames is set aside for each running process, and LRU is used separately for each pool
+        - This does not fare well since different processes exhibit different locality - which pages are needed and number of pages needed change over time
+    - With a *working set* approach, each running process is given an allocation of page frames matched to its needs *dynamically*
+        - The optimal working set for a process is the number of pages needed during the next time slace - if there are too few frames, there will be frequent page faults, but if there are too many frames the gains from the extra pages will be minimal
+            - This working set size can be determined by observing the process's behavior 
+            - The actual pages in the process's working set is determined by its locality of reference - the pages that it does not needed are faulted out
+        - Working sets can  be implemented by first assigning a certain amount (guess amount) of page frames to each in-memory process
+            - Processes page against themselves in the working set, and the paging behavior (faults per unit time) is used to adjust the number of assigned page frames accordingly
+        - **Page stealing algorithms** are used to adjust workign sets, such as the working-set-clock which approximates the last use time for owning processes, find the page approximately least recently used by its owner, and page it out
+            - Processes that need more pages tend to get more, while processes that don't use their pages tend to lose them
+## Thrashing
+- Thrasing occurs when there is not enough memory for the sum of the active working sets - in this case, no process will have enough pages in memory and whenever anything runs, it will grab a page from some other process
+    - This results in many, many page faults, resulting in all processes running slowly
+- One way to deal with thrashing is to *reduce* the number of competing processes - such as by swapping some of the ready processes out and giving their page frames to the other processes
+    - These swapped-out processes won't run for quite a while, but this ensures progress for the other processes
+        - Perhaps round-robin can be used for which processes are swapped out and which are not
+## Clean vs. Dirty Pages
+- A page that was recently swapped from disk will have two copies - one on disk (as swapping does not just clear out the disk memory), and one on memory
+- If the in-memory copy becomes modified, the copy on the disk is no longer up-to-date, and if it is paged out of memory it must now be *written* to disk
+- Clean pages can be replaced at any time since the copy on disk is up to date, but dirty pages must be written to disk before the frame can be reused
+    - **Pre-emptive page laundering** is used to address this issue - dirty pages are converted to clean ones via background writes to disk
+        - All dirty, *non-running* pages are written to disk since eventually they will likely to  be paged out; once the write is completed, it is marked as clean (such as by unsetting the dirty bit)
