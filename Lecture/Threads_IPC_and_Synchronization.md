@@ -52,3 +52,45 @@
     - The write and read buffer sizes are unrelated, and the stream is delimited via program-specific conventions (like newlines, commas, etc.)
 - **Messages (datagrams)** are a sequence of distinct messages, each with its own length (subject to limits)
     - Each message is typically read/written as a unit, and message delivery is usually all-or-nothing
+- **Flow control**, in the context of interprocess communication, ensures that a fast sender does not overwhelm a slow receiver - this is especially relevant when considering communication via byte streams
+    - Interprocess communications are queued in system resources (such as memory) until the receiver asks for it, but since this buffer space is finite, it is possible for the sender to fill up the entire space before the reader is able to read anything
+    - To deal with this, either the operating system can block the sender from sending more data or the operating system can flush old data
+        - It is best to make use of some sort of feedback system, such as by lowering the priority level of a sender so that they send data less frequently to the buffer
+- It is important to ensure *reliability* with interprocess communications
+    - This involves, for example, the question of when to signal the sender that their interprocess communication is complete - whether when the message is queued locally, when the message has been added to the receiver's input queue, when the receiver has actually read the message, or when the receiver has explicitly acknowledged the message
+    - Reliability is even more important when dealing with *networks* as packet losses are incredibly common - this incurs the question of whether to attempt retransmissions, or to try different routes/servers, and so forth
+    - Another question of reliability involves whether or not to maintain state when there are server crashes or process kills
+- **Pipes** are one form of interprocess communication where a byte stream flows in a pipeline fashion - these bytes are buffered in the operating system (in memory), which thus does not require temporary files
+    - Pipes are all under control of a single user, so there are no questions of security or privacy 
+    - When a sender is *done* using a pipe, they would send a *end of file* message
+- **Sockets** are connections between addresses/ports - there is a sender and receiver port (which listens for data)
+    - Sockets present various data options, such as reliable (TCP) or best effort message (UDP), streams, messages, remote procedure calls, etc.
+    - Due to their versality, sockets are associated with complex flow control and error handling - retransmissions, timeouts, node failures, etc. 
+    - Sockets are not all under the control of a single user, so they require maintaining security between communicating processes
+- **Shared memory** is another form of interprocess communication. The operating system arranges for processes to share *read/write* memory segments, which are mapped into such processes' address spaces (they point to the same physical page)
+    - Applications must provide their own control and procedures for sharing; the operating system simply sets up the shared memory and is not involved in the actual data transfer
+        - Since there is no operating system involvement, this approach is very *fast*
+    - This can be simple in some instances but complicated in other instances since there is no guarantees of synchronization or error handling due to there being no operating system involvement - all of this must be done by the cooperating processes 
+    - This approach only works on local machines since memory is *local*
+## Synchronization
+- Parallelism is important to have in systems because it improves throughput (activities can work at the same time instead of blocking each other), modularity (complex tasks are separated), and robustness (one thread failing does not stop others)
+    - Parallelism is relevant to emerging paradigms, such as client-serving computing 
+- **Synchronization** refers to the process of ensuring parallel activities (processes, threads, etc.) happen in the *correct* order
+    - A program that is sequential is inherently deterministic and therefore trivial to ensure is synchronized
+    - Similarly, independent parallel programs are easy to ensure synchronization since they do not interact any way
+    - The issue emerges with *cooperating parallel programs*, as results depend on the order of instruction execution, which is non-deterministic (due to scheduling order)
+- **Race conditions** occur when there are two or more things running in parallel
+    - Typically race conditions do not matter (such as when there is no interaction between processes/threads), but there are cases where race conditions do impact *correctness*
+        - Correctness-affecting race conditions may involve conflicting updates, check/act races (one process waiting for something to happen by another process), multi-object races (all-or-none transactions), and distributed computing decisions (which may be based on inconsistent views)
+- **Non-deterministic execution** is execution that is not inherently predictable, often a result of activities such as I/O calls, time slicing, interrupts, unsynchronized interruption, etc.
+### Critical Sections
+- A **critical section** is a resource that is shared by multiple interpreters (threads, processes, CPUs, etc.) that can change in state when used 
+    - Correctness for a critical section depends on *execution order*, which is heavily dependent on scheduling order (context switches)
+        - While it is *unlikely* for a certain context switch to mess with the execution order, billions of instructions are executed per second so these unlikely events can happen quite frequently
+- Issues concerning critical sections are addressed through **mutual exclusion**, which ensures that only *one thread can execute a critical section* at a time 
+    - One way to get mutual exclusion is by *disabling interrupts* so that there is no preemption
+        - This requires performing a privileged instruction, which is not feasible for user programs as they can potentially abuse the lack of interrupts (or be susceptible to a infinite loop bug which stops the entire machine)
+            - Usually only the operating system itself does this in its kernel code, since it can be trusted
+        - This also does not work with multi-core machines
+    - Another, more common way, is to use *atomic instructions* to implement locks
+        - **Atomic instructions** are uninterruptible read/modify/write operations, which can be used to implement locks that hold down critical sections
