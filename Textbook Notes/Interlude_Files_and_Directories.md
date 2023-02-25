@@ -30,15 +30,24 @@
     - The call returns the number of bytes successfully read
 - A file can also be written to using the `write()` system call
     - `ssize_t write(int fd, const void *buf, size_t count)`
-    - `write(1, "hello\n", 6)`
+    - `write(1, "hello\n", 6)` 
 ## Nonsequential Reading and Writing
 - For each open file descriptor, the operating system tracks a current offset to determine where the next read or write should be done from
+- This offset is relative to the file descriptor, not the file - so if multiple file descriptors are open for the same file, there is no global offset but rather an offset per descriptor being tracked
+    - Open files are tracked by the operating system using an **open file table**
+    - ![Open File Table](../Images/Open_File_Table.jpg)
+    - ![File Struct](../Images/File_Struct.jpg)
 - If reads or writes need to be done from a specific offset within a file, the `lseek()` system call can be used to set this offset
     - `off_t lseek(int fd, off_t offset, int whence)`
         - `whence` determines how the seek is performed
             - `SEEK_SET` sets the offset to `offset` bytes
             - `SEEK_CUR` sets the offset to its current location + offset bytes
             - `SEEK_END` sets the offset to the size of the file plus offset bytes  
+## Shared File Table Entries: fork() and dup()
+- There are cases where entires in an open file table are *shared*, as with parent and child processes via the `fork()` system call
+    - When a file is shared, its associated descriptor will have a **reference count** indicating how many processes are using the file - when a process closes the descriptor, this reference count decrements, and if it is zero, the entry is removed from the file table
+    - ![Sharing Files](../Images/Sharing_Files.jpg)
+- The `dup()` system call creates a new file descriptor that refers to the *same* underlying file as the existing descriptor 
 ## Writing Immediately
 - Often, a call to `write()` will be **buffered** by the operating system for performance reasons - the writes will be buffered in memory for some time (usually to wait for other writes) before the write actually occurs
 - The `fsync()` system call can be used to force all dirty data to be written to disk
@@ -83,7 +92,12 @@
 - The `symlink()` system call can be used to create **soft links**, which are files which effectively hold the *pathname* of the linked-to file - meaning if the original file is deleted or renamed, a **dangling reference** is left of the soft link
     - `int symlink(const char *target, const char *linkpath)`
 - Soft links *can* link to directories or other disk partitions
+## Permission Bits and Access Control Lists
+- In UNIX, **permissions bits** are a mechanism to deal with shared files, determining **read**, **write**, and **execution** permissions for three groupings: the **owner** of the file, an individual in a **group**, and all **others**
+- Distributed systems may also use mechanisms such as **access control lists**, which are lists of which users can and cannot read a set of files
 ## Making and Mounting a File System
 - A directory tree can be assembled from many underlying, even different, filesystems by first making such file systems and then mounting them
 - File systems can usually be made using a `makefs` tool which, given a device (i.e. disk partition) and file system type as input, writes an empty file system onto that device
 - This created file system is not accessible within the system's file tree unless it is mounted, usually with a `mount` program that takes an existing directory as a **mount point** and implements the file system onto the directory tree at that point
+## Summary
+- ![File System Terms](../Images/File_System_Terms.jpg)
