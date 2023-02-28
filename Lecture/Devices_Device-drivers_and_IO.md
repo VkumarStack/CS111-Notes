@@ -80,3 +80,9 @@
 ## Memory Mapped I/O
 - Since DMA is not the best way to do I/O, especially for small transfers, an alternative is to use **memory mapped I/O**, where registers or memory in a *device* is treated as part of the regular memory space for a *program*, but under the hood it is translated by the MMU and routed appropriately between the device and the program
     - This directly moves data between the device and the CPU, and as such should be used for small, frequently transfers 
+## Device Abstractions
+- The operating system defines idealized device classes (i.e. those for flash, for display, for printers, etc.), which themselves define expected interfaces/behavior to be followed by drivers in that class
+## Kernel Services for Device Drivers
+- Device drivers may need resources from the operating system, requiring a **Driver Kernel Interface (DKI)**
+    - This is is akin to an application binary interface (ABI) in that it enables a driver to work properly on any version of any operating system
+    - It is vital, therefore, that this interface is stable as otherwise drivers would not be able to work properly
