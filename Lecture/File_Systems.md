@@ -85,3 +85,16 @@
     - The FAT table can be kept in memory, thus allowing for the nth cluster of a file to be found without reading each cluster before it
 - Thus, to find a particular block of a file
     - The number of the first cluster must be found from the directory entry, then a chain of pointers can be followed through the File Allocation Table (which is kept in memory)
+        - Although the File Allocation Table is kept in memory, the in-memory search can still be long for very large files
+- The DOS file system has no support for sparse files - if a file has a block *n*, it must have all blocks less than *n* 
+## File Index Blocks
+- **File index blocks** act as a different way to keep track of a where a file's data blocks are on the device  
+    - The file control block points to all blocks in the file, enabling a very fast access to any desired block
+        - For large files, some of the pointers do not point directly to data blocks but rather another block of pointers which contain the actual pointers to data blocks
+            - The extent of this pointer hierarchy can be increased as needed
+    - Although going through many indirect blocks may be slow, it is common for a majority of files to be only a *few thousand bytes long* so usually extra I/O is unnecessary for small files (though this is not the same for large files)
+    - Assuming 4K bytes per block and 4 bytes per pointer, then:
+        - 10 direct blocks = 10 * 4K bytes = 40K bytes
+        - Indirect block = 1K * 4K = 4M bytes
+        - Double indirect block = 1K * 4M = 4G bytes
+        - Triple indirect block = 1K * 4G = 4T bytes
