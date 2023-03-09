@@ -55,3 +55,33 @@
 ## File System Reliability
 - There are a multitude of reliability issues associated with file systems, such as system crashes that result in an incorrect file state, data loss, and potentially even file system corruption (key structures being corrupted can be very detrimental)
 - The main issue with reliability comes from the fact that file system writes typically involve multiple operations (writing to the data block as well as potentially many metadata blocks)
+- One approach can involve blocking writes until all writes have *actually occurred* (instead of telling the user that they have occurred when in reality they are being buffered)
+    - This, however, incurs a performance overhead for the *rare* case of a crash
+- Another approach can be to utilize *ordered writes*
+    - This involves writing the data out first and then pointers (metadata)
+        - If there is a crash, the unreferenced data can be cleaned later during a garbage colection process
+        - This is meant to minimize incorrect metadata, which is a serious issue
+    - This also involves writing out deallocations (fixing pointers) before allocations (correcting the free list)
+    - Even so, doing this still reduces I/O performance as now there is an imposed ordering in I/O operations
+        - Moreso, ordered writes may not be possible since many modern storage devices may re-order requests
+- Yet another approach can be to design file system structures to be auditable and repairable
+    - This often involves placing redundant information in multiple, distinct places
+    - Periodically, the file system would be audited for correctness and the redundant information could be used to enable automatic repair 
+        - This was typically done in Unix using the `fsck` tool
+    - This approach is no longer practical (though it used to be) since the audit and repair process takes long
+- The most modern approach is to make use of **journaling**, which utilizes a circular buffer journaling device to store all intended file system updates (transactions)
+    - The file system then consults the journal entries to undergo all of the updates (as the actual writes are stored in journal entries) and then *when the updates have been completed*, the journal entry is cleared
+        - If there is a crash during a write (or even right before a write), then the journal entry would not have been cleared and the updates could be replayed
+    - Journal entries can be batched, since as soon as an update is written into the journal it is safe
+    - Journaling writes are much faster than data writes since journal writes are sequential
+        - Scanning the journal on restart is alaso very fast 
+- **Metadata journaling**, unlike normal journaling, only stores metadata 
+    - The data is written first and then the metadata is written in the journal, which ensures that there is no metadata pointing to garbage
+    - This is more efficient than normal journaling becauase writing data blocks to the journal would otherwise take up much of its bandwidth
+## Log Structured File System
+- In a log-structured file system, the journal *is* the file system
+    - All inodes and data updates are written to the log, meaning that updates are redirect-on-write (point to the new version instead of the old version)
+    - Typically, an in-memory index will cache inode locations
+- Log-structured file systems may be slow with regards to recovery time (to reconstruct index/cache) and may incur log garbage that must be periodically defragmented and garbage collected
+- In a log-structured file system, inodes point at data segments in the log, and since these inodes themselves may be updated there is a need for a inode map that indicates the location of the most recent inode
+- When a block is written to, its blocks and inodes are *immutable*
