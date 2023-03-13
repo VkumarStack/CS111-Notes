@@ -1,0 +1,12 @@
+# Distributed Systems Goals & Challenges
+- The need for distributed systems can be attributed to a variety of factors:
+    - It is not always necessary for all resources to be connected to a client computer - it may be cost effective to use remote resources (servers), especially for resources that are not so frequently needed
+    - Distributed computing models can enable more reliable systems by ensuring that servers are *independent* from each other - a single point of failure does not take out multiple systems
+    - Using distributed systems enable more scalability, as it is more cost effective and feasible to horizontally scale than to vertically scale
+- Distributed systems, however, come with their own sets of challenges
+    - Unlike a single system, distributed systems can have *partial failures* that must be dealt with accordingly - a single node can crash while others run, a network message may be delayed or lost, etc.
+        - It may be difficult to actually determine whether a node has failed, as it may be the case that a node appears to have died when in reality it could have been an issue with communication rather than the node itself
+        - In the case of partial failure, it may be necessary to deal with the case where a node was holding a lock to a resource before it failed
+    - Distributed systems have much more complex state, as updates to state cannot always be totally ordered, and the state itself may be different throughout the devices - the state, thus, is a result of the state of all nodes on the system
+        - A locking approach to managing state, as by sending messages to a single state-managing node, could work but is slow - and thus should be used sparingly
+    - Distributed systems may have many different systems, not only in terms of functionality (i.e. some set of servers act as databases) and configuration (i.e. the database servers have different users being stored), but also in terms of platform (i.e. different ISA, operating system etc.)
