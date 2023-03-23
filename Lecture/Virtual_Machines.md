@@ -19,3 +19,24 @@
 - The controller that manages all virtual machines is known as the **hypervisor**, and whenever the virtual machine traps, it traps into the hypervisor (rather than the virtual machine's operating system)
     - This trapping occurs whenever the virtual machine does anything privileged - the visor will then forward the request to the virtual machine's operating system
         - Subsequent privileged operations will then trap back into the visor
+- In a system call, therefore, an application performs a privileged instruction, which traps into the visor (which is running in kernel mode)
+    - The visor does not have all of the information to perform the system call correctly, nor does it understand the caller's internal state, so it instead invokes the virtual operating system's trap table and jumps to its handler for the system call
+        - Whenever the virtual operating system itself attempts to use privileged instructions, it traps into the visor, which performs the privileged instruction and then returns back to the virtual operating system
+- If the virtual operating system is not running in privileged mode, then it may be difficult for the virtual operating system to enforce its interface to user applications
+    - This is solved by virtualizing memory; the virtual operating system believes it has physical addresses, which it uses to provide virtual memory addresses to its processes
+        - In actuality, though, the visor has machine addresses which translate to physical addresses within a single virtual machine
+    - This means that TLB misses are much more expensive for virtual machines, which can affect performance overall
+        - To make virtual machines perform better, special hardware can be added to make issues of virtualizing the CPU and memory cheaper
+        - Another optimization approach is **paravirtualization**; instead of the guest operating systems not knowing about the virtualization, such operating systems are changed a bit so that they do know about the virtualization and can therefore do some activities cheaper 
+            - This requires actually changing the code of the operating system to support
+## Virtual Machines and Cloud Computing
+- Cloud computing is about sharing hardware among multiple customers, where the cloud provider sells or rents computing power to customers
+    - Since cloud providers need lots of customers to make money, they need lots of hardware
+    - Cloud providers utilize a vast number of machines connected by high speed internal networks, as well as the internet to allow customers remote access
+- The expectation is that the cloud environment will run applications for many separate customers at a time, implying that there may be very different needs among customers
+    - To make the most efficient use of the hardware, virtual machines are utilized by cloud environments 
+        - More customers are able to fit on the same amount of hardware, thus maximizing profit
+        - Customers often do not need the full power of a machine, so costs can be saved by using part of their machine for another customer 
+- In essence, cloud computing environments run all of their customers in a virtual machine
+    - These virtual machines must be placed properly among physical machines to maximize efficiency, often requiring a bin packing algorithm to figure out, which is an NP-hard problem
+        - Estimation techniques are often utilized instead
